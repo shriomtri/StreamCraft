@@ -1,0 +1,41 @@
+Certainly! Here are sample requests for each resolution and dimension:
+
+1. For resolution `480p` and dimension `320x240`:
+   - Playlist request: `GET /stream/480p/320x240/playlist.m3u8`
+   - Segment request: `GET /stream/480p/320x240/{segment_number}`
+
+2. For resolution `480p` and dimension `640x480`:
+   - Playlist request: `GET /stream/480p/640x480/playlist.m3u8`
+   - Segment request: `GET /stream/480p/640x480/{segment_number}`
+
+3. For resolution `480p` and dimension `1280x720`:
+   - Playlist request: `GET /stream/480p/1280x720/playlist.m3u8`
+   - Segment request: `GET /stream/480p/1280x720/{segment_number}`
+
+4. For resolution `720p` and dimension `320x240`:
+   - Playlist request: `GET /stream/720p/320x240/playlist.m3u8`
+   - Segment request: `GET /stream/720p/320x240/{segment_number}`
+
+5. For resolution `720p` and dimension `640x480`:
+   - Playlist request: `GET /stream/720p/640x480/playlist.m3u8`
+   - Segment request: `GET /stream/720p/640x480/{segment_number}`
+
+6. For resolution `720p` and dimension `1280x720`:
+   - Playlist request: `GET /stream/720p/1280x720/playlist.m3u8`
+   - Segment request: `GET /stream/720p/1280x720/{segment_number}`
+
+7. For resolution `1080p` and dimension `320x240`:
+   - Playlist request: `GET /stream/1080p/320x240/playlist.m3u8`
+   - Segment request: `GET /stream/1080p/320x240/{segment_number}`
+
+8. For resolution `1080p` and dimension `640x480`:
+   - Playlist request: `GET /stream/1080p/640x480/playlist.m3u8`
+   - Segment request: `GET /stream/1080p/640x480/{segment_number}`
+
+9. For resolution `1080p` and dimension `1280x720`:
+   - Playlist request: `GET /stream/1080p/1280x720/playlist.m3u8`
+   - Segment request: `GET /stream/1080p/1280x720/{segment_number}`
+
+Replace `{segment_number}` with the actual segment number, starting from 1.
+
+Make sure to use these sample requests to access the specific resolution and dimension streams from your client application or video player.
