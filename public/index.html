@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Streaming Player</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    /* Custom styles for the enhanced UI */
+    .video-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .video-card {
+      background-color: #fff;
+      border-radius: 0.25rem;
+      padding: 1rem;
+      cursor: pointer;
+    }
+
+    .video-card.completed {
+      border: 2px solid #28a745;
+    }
+
+    .video-card.pending {
+      border: 2px solid #ffc107;
+    }
+
+    .video-card.processing {
+      border: 2px solid #007bff;
+    }
+
+    .video-card h5 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .video-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+
+    .create-video-dialog {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      z-index: 999;
+    }
+
+    .create-video-dialog-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fff;
+      padding: 2rem;
+      border-radius: 0.25rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .notification {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 1rem 2rem;
+      background-color: #28a745;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 0.25rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h1 class="text-center">Live Streaming Player</h1>
+        <div class="card">
+          <div class="card-body">
+            <video id="videoPlayer" class="w-100" controls></video>
+            <div class="mt-3">
+              <label for="resolutionSelect" class="form-label">Select Resolution:</label>
+              <select id="resolutionSelect" class="form-select">
+                <option value="http://localhost:3000/stream/480p/320x240/playlist.m3u8">480p - 320x240</option>
+                <!-- <option value="1080p">1080p</option> -->
+                <!-- <option value="480p">480p</option> -->
+                <!-- Add more options for different resolutions -->
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 offset-md-2 mt-4">
+        <h3>Video List</h3>
+        <div class="video-list" id="videoListContainer"></div>
+      </div>
+      <div class="col-md-4 mt-4">
+        <button class="btn btn-primary" id="createVideoBtn">Create Video</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="create-video-dialog" id="createVideoDialog">
+    <div class="create-video-dialog-content">
+      <h4>Create Video</h4>
+      <div class="mb-3">
+        <label for="videoNameInput" class="form-label">Name:</label>
+        <input type="text" class="form-control" id="videoNameInput">
+      </div>
+      <div class="mb-3">
+        <label for="videoLinkInput" class="form-label">Link:</label>
+        <input type="text" class="form-control" id="videoLinkInput">
+      </div>
+      <button class="btn btn-primary" id="createVideoSubmit">Submit</button>
+    </div>
+  </div>
+
+  <div class="notification" id="notification"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    if (Hls.isSupported()) {
+      const videoPlayer = document.getElementById('videoPlayer');
+      const hls = new Hls();
+      const resolutionSelect = document.getElementById('resolutionSelect');
+      const videoListContainer = document.getElementById('videoListContainer');
+      const createVideoBtn = document.getElementById('createVideoBtn');
+      const createVideoDialog = document.getElementById('createVideoDialog');
+      const videoNameInput = document.getElementById('videoNameInput');
+      const videoLinkInput = document.getElementById('videoLinkInput');
+      const createVideoSubmit = document.getElementById('createVideoSubmit');
+      const notification = document.getElementById('notification');
+
+      let selectedPlaylistUrl = '';
+
+      // Function to display success notification
+      function showSuccessNotification(message) {
+        notification.innerText = message;
+        notification.style.backgroundColor = '#28a745';
+        notification.style.display = 'block';
+        setTimeout(() => {
+          notification.style.display = 'none';
+        }, 3000);
+      }
+
+      // Function to display error notification
+      function showErrorNotification(message) {
+        notification.innerText = message;
+        notification.style.backgroundColor = '#dc3545';
+        notification.style.display = 'block';
+        setTimeout(() => {
+          notification.style.display = 'none';
+        }, 3000);
+      }
+
+      // Function to create a video card
+      function createVideoCard(video) {
+        const card = document.createElement('div');
+        card.classList.add('video-card');
+        card.classList.add(video.status);
+
+        const title = document.createElement('h5');
+        title.innerText = video.name;
+
+        const status = document.createElement('p');
+        status.innerText = `Status: ${video.status}`;
+
+        card.appendChild(title);
+        card.appendChild(status);
+
+        card.addEventListener('click', () => {
+          handleVideoCardClick(video);
+        });
+
+        videoListContainer.appendChild(card);
+      }
+
+      // Function to handle video card click event
+      function handleVideoCardClick(video) {
+        if (video.status === 'completed') {
+          playVideo(video.playlistUrl);
+        } else if (video.status === 'pending') {
+          showNotification('Video is pending for processing');
+        } else if (video.status === 'processing') {
+          showNotification('Video is currently being processed');
+        }
+      }
+
+      // Function to play the video with the given playlist URL
+      function playVideo(playlistUrl) {
+        hls.destroy(); // Destroy the existing Hls instance
+
+        // Create a new Hls instance and load the selected playlist
+        const newHls = new Hls();
+        newHls.loadSource(playlistUrl);
+        newHls.attachMedia(videoPlayer);
+
+        newHls.on(Hls.Events.MANIFEST_PARSED, () => {
+          videoPlayer.play();
+        });
+
+        hls = newHls;
+        selectedPlaylistUrl = playlistUrl;
+      }
+
+      // Function to fetch the video list and display it in the UI
+      async function fetchVideoList() {
+        videoListContainer.innerHTML = ''; // Clear the existing video list
+
+        try {
+          const response = await fetch('/videos');
+          const videoList = await response.json();
+
+          videoList.forEach(video => {
+            createVideoCard(video);
+          });
+        } catch (error) {
+          console.error('Error fetching video list:', error);
+          showErrorNotification('Error fetching video list');
+        }
+      }
+
+      // Function to handle create video form submission
+      async function handleCreateVideoSubmit() {
+        const name = videoNameInput.value;
+        const link = videoLinkInput.value;
+
+        if (!name || !link) {
+          showErrorNotification('Please enter both name and link');
+          return;
+        }
+
+        try {
+          const response = await fetch('/videos', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, link })
+          });
+
+          if (response.ok) {
+            const video = await response.json();
+            createVideoCard(video);
+            showSuccessNotification('Video created successfully');
+            closeCreateVideoDialog();
+          } else {
+            throw new Error('Video creation failed');
+          }
+        } catch (error) {
+          console.error('Error creating video:', error);
+          showErrorNotification('Error creating video');
+        }
+      }
+
+      // Function to open the create video dialog
+      function openCreateVideoDialog() {
+        createVideoDialog.style.display = 'block';
+      }
+
+      // Function to close the create video dialog
+      function closeCreateVideoDialog() {
+        createVideoDialog.style.display = 'none';
+        videoNameInput.value = '';
+        videoLinkInput.value = '';
+      }
+
+      // Event listener for resolution select change
+      resolutionSelect.addEventListener('change', () => {
+        if (selectedPlaylistUrl) {
+          playVideo(selectedPlaylistUrl);
+        }
+      });
+
+      // Event listener for create video button click
+      createVideoBtn.addEventListener('click', openCreateVideoDialog);
+
+      // Event listener for create video submit button click
+      createVideoSubmit.addEventListener('click', handleCreateVideoSubmit);
+
+      // Fetch the video list on page load
+      fetchVideoList();
+    } else {
+      console.error('HLS is not supported');
+      showErrorNotification('HLS is not supported');
+    }
+  </script>
+</body>
+</html>
